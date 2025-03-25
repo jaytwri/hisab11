@@ -1,7 +1,22 @@
-from flask import Flask, render_template, request, redirect, url_for
+from flask import Flask, render_template, request, redirect, url_for, session
 import sqlite3
+from werkzeug.security import generate_password_hash, check_password_hash
 
 app = Flask(__name__)
+app.secret_key = 'your_secret_key'  # Change this to a strong, random secret key
+
+# Hardcoded users with hashed passwords
+users = {
+    "Jay": generate_password_hash("password123"),
+    "Yash": generate_password_hash("securepass"),
+    "Pari": generate_password_hash("mypassword"),
+    "Aaryan": generate_password_hash("letmein"),
+    "Arjun": generate_password_hash("pass1234"),
+    "Krishna": generate_password_hash("gameon")
+}
+
+# Allowed players list
+allowed_players = {"Jay", "Yash", "Pari", "Aaryan", "Arjun", "Krishna"}
 
 # Initialize database
 def init_db():
@@ -32,12 +47,40 @@ init_db()
 
 @app.route('/')
 def index():
+    if "user" not in session:
+        return redirect(url_for("login"))
     return render_template('index.html')
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
+        
+        if username in users and check_password_hash(users[username], password):
+            session['user'] = username
+            return redirect(url_for('index'))
+        else:
+            return "Invalid username or password", 403
+    
+    return render_template("login.html")
+
+@app.route('/logout')
+def logout():
+    session.pop('user', None)
+    return redirect(url_for('login'))
 
 @app.route('/submit', methods=['POST'])
 def submit():
+    if "user" not in session:
+        return redirect(url_for("login"))
+    
     players = [request.form[f'player{i}'] for i in range(1, 7)]
     date = request.form['date']
+    
+    # Validate that all players are from the allowed list
+    if not all(player in allowed_players for player in players):
+        return "Invalid player name entered", 400
 
     conn = sqlite3.connect('tournament.db')
     c = conn.cursor()
@@ -64,6 +107,9 @@ def submit():
 
 @app.route('/balances')
 def balances():
+    if "user" not in session:
+        return redirect(url_for("login"))
+    
     conn = sqlite3.connect('tournament.db')
     c = conn.cursor()
 
@@ -79,6 +125,9 @@ def balances():
 # Route to clear all transactions
 @app.route('/reset', methods=['POST'])
 def reset():
+    if "user" not in session:
+        return redirect(url_for("login"))
+    
     conn = sqlite3.connect('tournament.db')
     c = conn.cursor()
     c.execute("DELETE FROM results")
