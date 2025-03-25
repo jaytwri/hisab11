@@ -49,7 +49,7 @@ init_db()
 def index():
     if "user" not in session:
         return redirect(url_for("login"))
-    return render_template('index.html')
+    return render_template('home.html')
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -69,6 +69,12 @@ def login():
 def logout():
     session.pop('user', None)
     return redirect(url_for('login'))
+
+@app.route('/rankings')
+def rankings():
+    if "user" not in session:
+        return redirect(url_for("login"))
+    return render_template('index.html')
 
 @app.route('/submit', methods=['POST'])
 def submit():
