@@ -80,10 +80,13 @@ def rankings():
 def submit():
     if "user" not in session:
         return redirect(url_for("login"))
-    
+
+    if session['user'] != "Jay":  # Restrict updates to Jay only
+        return "You are not authorized to submit results.", 403
+
     players = [request.form[f'player{i}'] for i in range(1, 7)]
     date = request.form['date']
-    
+
     # Validate that all players are from the allowed list
     if not all(player in allowed_players for player in players):
         return "Invalid player name entered", 400
@@ -133,7 +136,10 @@ def balances():
 def reset():
     if "user" not in session:
         return redirect(url_for("login"))
-    
+
+    if session['user'] != "Jay":  # Restrict reset to Jay only
+        return "You are not authorized to reset the tournament.", 403
+
     conn = sqlite3.connect('tournament.db')
     c = conn.cursor()
     c.execute("DELETE FROM results")
